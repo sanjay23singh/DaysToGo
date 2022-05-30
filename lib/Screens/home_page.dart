@@ -18,19 +18,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool rotate = false;
   final TextEditingController _textEditingController = TextEditingController();
   final ScreenshotController _screenshotController = ScreenshotController();
 
+  void showSnackBar(String text) {
+    var snackBar = SnackBar(content: Text(text));
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
   @override
-  void initState(){
+  void initState() {
     getPermissions().then((value) {
       setState(() {});
     });
-      
+
     super.initState();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -44,64 +48,80 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.fromLTRB(20, 100, 20, 100),
-        child: Column(
-          children: [
-            const Text(
-              "Enter Number of Days",
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold),
+      body: Stack(
+        children: [
+          Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.fromLTRB(20, 100, 20, 100),
+            child: Column(
+              children: [
+                const Text(
+                  "Enter Number of Days",
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold),
+                ),
+                SizedBox(
+                  width: 100,
+                  child: TextFormField(
+                    controller: _textEditingController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(fontSize: 20),
+                    maxLines: 1,
+                  ),
+                ),
+                Expanded(
+                  child: Container(),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_textEditingController.text.isEmpty) {
+                      showSnackBar('Invalid value');
+                    } else {
+                      setState(() {
+                        rotate = true;
+                        spinkitText = "Creating Wallpaper";
+                      });
+                      _getScreenshot();
+                    }
+                  },
+                  child: const Text("Create Wallpaper"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    setState(() {
+                      rotate = true;
+                      spinkitText = 'Setting Wallpaper service';
+                      prefs!.remove('day');
+                    });
+                    developer.log(DateTime.now().toString());
+                    const int helloAlarmID = 234234;
+                    await AndroidAlarmManager.periodic(
+                      const Duration(milliseconds: 1),
+                      helloAlarmID,
+                      callback,
+                      exact: true,
+                      allowWhileIdle: true,
+                    );
+                  },
+                  child: const Text("Set Wallpaper"),
+                ),
+              ],
             ),
-            SizedBox(
-              width: 100,
-              child: TextFormField(
-                controller: _textEditingController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(fontSize: 20),
-                maxLines: 1,
-              ),
-            ),
-            Expanded(
-              child: Container(),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _getScreenshot();
-              },
-              child: const Text("Create Wallpaper"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                developer.log('A');
-               developer.log(DateTime.now().toString());
-                const int helloAlarmID = 234234;
-                await AndroidAlarmManager.periodic(
-                  const Duration(seconds: 1),
-                  helloAlarmID,
-                 callback,
-                  exact: true,
-                  allowWhileIdle: true,
-                );
-              },
-              child: const Text("Set Wallpaper"),
-            ),
-          ],
-        ),
+          ),
+          if (rotate) getSpinkit('Creating wallpapers')
+        ],
       ),
     );
   }
-
-
 
   Future<void> _getScreenshot() async {
     if (appDocDir.existsSync()) {
       appDocDir.deleteSync(recursive: true);
     }
     int n = int.parse(_textEditingController.text);
+
     for (int i = 1; i <= n; i++) {
       _screenshotController
           .captureFromWidget(screenshotImage(i, n))
@@ -114,6 +134,14 @@ class _HomePageState extends State<HomePage> {
             file.writeAsBytesSync(image);
             developer.log(file.path);
           });
+          if (i == n) {
+            setState(() {
+              rotate = false;
+              _textEditingController.clear();
+            });
+            showSnackBar('Wallpapers created');
+            developer.log('Done');
+          }
         });
       }).catchError((onError) {
         // print(onError);
