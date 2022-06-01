@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wallpaper/Screens/temp.dart';
+import 'package:wallpaper/Screens/home_page2.dart';
 import 'package:wallpaper/universal_variables.dart';
 
 void main() async {
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
     
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: TempPage(),
+      home: HomePage(),
     );
   }
 }

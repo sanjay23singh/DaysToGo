@@ -1,151 +1,118 @@
-// import 'dart:io';
-// import 'dart:developer' as developer;
-// import 'dart:typed_data';
-// import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
-// import 'package:screenshot/screenshot.dart';
-// import 'package:toast/toast.dart';
-// import 'package:wallpaper/Functions/screenshot_functions.dart';
-// import 'package:wallpaper/Functions/universal_functions.dart';
-// import 'package:wallpaper/universal_variables.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:step_progress_indicator/step_progress_indicator.dart';
+import 'package:wallpaper/Functions/universal_functions.dart';
+import 'package:wallpaper/Screens/clock_page.dart';
 
-// class HomePage extends StatefulWidget {
-//   const HomePage({Key? key}) : super(key: key);
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
-//   @override
-//   State<HomePage> createState() => _HomePageState();
-// }
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
 
-// class _HomePageState extends State<HomePage> {
-//   bool rotate = false;
-//   final TextEditingController _textEditingController = TextEditingController();
-//   final ScreenshotController _screenshotController = ScreenshotController();
+class _HomePageState extends State<HomePage> {
+  bool rotate = false;
+  int _currentDay = 1;
+  int _totalDays = 100;
+  int _remainingDays = 0;
 
-//   void showSnackBar(String text) {
-//     var snackBar = SnackBar(content: Text(text));
-//     ScaffoldMessenger.of(context).showSnackBar(snackBar);
-//   }
+  void showHomePageSnackBar(String text) {
+    var snackBar = SnackBar(content: Text(text));
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
 
-//   @override
-//   void initState() {
-//     getPermissions().then((value) {
-//       setState(() {});
-//     });
+  updateDates() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey('currentDay')) {
+      setState(() {
+        _currentDay = prefs.getInt('currentDay')!.toInt();
+        _totalDays = prefs.getInt('totalDays')!.toInt();
+        _remainingDays = prefs.getInt('remainingDays')!.toInt();
+      });
+    }
+  }
 
-//     super.initState();
-//   }
+  @override
+  void initState() {
+    updateDates();
+    super.initState();
+  }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     ToastContext().init(context);
-//     SystemChrome.setEnabledSystemUIMode(
-//       SystemUiMode.manual,
-//       overlays: [
-//         SystemUiOverlay.top, // Shows Status bar and hides Navigation bar
-//       ],
-//     );
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          elevation: 0,
+          actions: [
+            IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ClockPage()),
+                  );
+                },
+                icon: const Icon(Icons.add))
+          ],
+        ),
+        body: _body());
+  }
 
-//     return Scaffold(
-//       resizeToAvoidBottomInset: false,
-//       body: Stack(
-//         children: [
-//           Container(
-//             alignment: Alignment.center,
-//             padding: const EdgeInsets.fromLTRB(20, 100, 20, 100),
-//             child: Column(
-//               children: [
-//                 const Text(
-//                   "Enter Number of Days",
-//                   style: TextStyle(
-//                       color: Colors.black,
-//                       fontSize: 30,
-//                       fontWeight: FontWeight.bold),
-//                 ),
-//                 SizedBox(
-//                   width: 100,
-//                   child: TextFormField(
-//                     controller: _textEditingController,
-//                     keyboardType: TextInputType.number,
-//                     style: const TextStyle(fontSize: 20),
-//                     maxLines: 1,
-//                   ),
-//                 ),
-//                 Expanded(
-//                   child: Container(),
-//                 ),
-//                 ElevatedButton(
-//                   onPressed: () {
-//                     if (_textEditingController.text.isEmpty) {
-//                       showSnackBar('Invalid value');
-//                     } else {
-//                       setState(() {
-//                         rotate = true;
-//                         spinkitText = "Creating Wallpaper";
-//                       });
-//                       _getScreenshot();
-//                     }
-//                   },
-//                   child: const Text("Create Wallpaper"),
-//                 ),
-//                 ElevatedButton(
-//                   onPressed: () async {
-//                     setState(() {
-//                       rotate = true;
-//                       spinkitText = 'Setting Wallpaper service';
-//                       prefs!.remove('day');
-//                     });
-//                     developer.log(DateTime.now().toString());
-//                     const int helloAlarmID = 234234;
-//                     await AndroidAlarmManager.periodic(
-//                       const Duration(milliseconds: 1),
-//                       helloAlarmID,
-//                       callback,
-//                       exact: true,
-//                       allowWhileIdle: true,
-//                     );
-//                   },
-//                   child: const Text("Set Wallpaper"),
-//                 ),
-//               ],
-//             ),
-//           ),
-//           if (rotate) getSpinkit('Creating wallpapers')
-//         ],
-//       ),
-//     );
-//   }
+  Widget _body() {
+    return Stack(
+      children: [
+        Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'Day $_currentDay/$_totalDays',
+                style:
+                    const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+              ),
+              CircularStepProgressIndicator(
+                totalSteps: _totalDays,
+                currentStep: _currentDay,
+                stepSize: 10,
+                selectedColor: Colors.greenAccent,
+                unselectedColor: Colors.grey[200],
+                padding: 0,
+                width: 200,
+                height: 200,
+                // selectedStepSize: 15,
+                roundedCap: (_, __) => true,
 
-//   Future<void> _getScreenshot() async {
-//     if (appDocDir.existsSync()) {
-//       appDocDir.deleteSync(recursive: true);
-//     }
-//     int n = int.parse(_textEditingController.text);
-
-//     for (int i = 1; i <= n; i++) {
-//       _screenshotController
-//           .captureFromWidget(screenshotImage(i, n))
-//           .then((Uint8List image) {
-//         //Capture Done
-//         setState(() async {
-//           await File('$appDocPath/wallpaper$i.png')
-//               .create(recursive: true)
-//               .then((file) {
-//             file.writeAsBytesSync(image);
-//             developer.log(file.path);
-//           });
-//           if (i == n) {
-//             setState(() {
-//               rotate = false;
-//               _textEditingController.clear();
-//             });
-//             showSnackBar('Wallpapers created');
-//             developer.log('Done');
-//           }
-//         });
-//       }).catchError((onError) {
-//         // print(onError);
-//       });
-//     }
-//   }
-// }
+                child: const Icon(
+                  Icons.auto_graph_sharp,
+                  color: Colors.purple,
+                  size: 84,
+                ),
+              ),
+              Column(
+                children: [
+                  const Text(
+                    'ONLY',
+                    style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    _remainingDays.toString(),
+                    style: const TextStyle(
+                        fontSize: 90, fontWeight: FontWeight.bold),
+                  ),
+                  const Text(
+                    'Days Remaining',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w400),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (rotate) getSpinkit('Setting Wallpapers')
+      ],
+    );
+  }
+}

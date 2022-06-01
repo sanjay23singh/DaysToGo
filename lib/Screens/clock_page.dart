@@ -5,19 +5,20 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:date_time_picker/date_time_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:screenshot/screenshot.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toast/toast.dart';
 import 'package:wallpaper/Functions/screenshot_functions.dart';
 import 'package:wallpaper/Functions/universal_functions.dart';
 import 'package:wallpaper/universal_variables.dart';
 
-class TempPage extends StatefulWidget {
-  const TempPage({super.key});
+class ClockPage extends StatefulWidget {
+  const ClockPage({super.key});
 
   @override
-  State<TempPage> createState() => _TempPageState();
+  State<ClockPage> createState() => _ClockPageState();
 }
 
-class _TempPageState extends State<TempPage> {
+class _ClockPageState extends State<ClockPage> {
   bool rotate = false;
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
@@ -37,14 +38,28 @@ class _TempPageState extends State<TempPage> {
   Widget _buttons() {
     int numOfDays = _endDate.difference(_startDate).inDays;
     return ElevatedButton(
-      onPressed: () {
+      onPressed: () async {
         if (numOfDays == 0) {
           showSnackBar('Invalid value');
         } else {
           setState(() {
             rotate = true;
           });
-          _getScreenshot();
+          int currentDay = DateTime.now().difference(_startDate).inDays;
+          int totalDays = _endDate.difference(_startDate).inDays;
+          int remainingDays = _endDate.difference(DateTime.now()).inDays + 1;
+          final prefs = await SharedPreferences.getInstance();
+          prefs.clear().then((value) {
+            if (value) {
+              prefs.setInt('totalDays', numOfDays);
+              prefs.setInt('currentDay', currentDay);
+              prefs.setInt('remainingDays', remainingDays);
+              prefs.setInt('prevDay', -1);
+              prefs.setBool('wallpaperSet', false);
+
+              _getScreenshot(currentDay, totalDays);
+            }
+          });
         }
       },
       child: const Text("Create Wallpaper"),
@@ -56,22 +71,27 @@ class _TempPageState extends State<TempPage> {
     ToastContext().init(context);
 
     return Scaffold(
-      appBar: AppBar(),
-      body: Stack(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-            child: Column(
-              children: [
-                getDateTimeColumn(),
-                Expanded(child: getNumOfDays(_startDate, _endDate)),
-                _buttons(),
-              ],
-            ),
+        appBar: AppBar(
+          elevation: 0,
+        ),
+        body: _body());
+  }
+
+  Widget _body() {
+    return Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+          child: Column(
+            children: [
+              getDateTimeColumn(),
+              Expanded(child: getNumOfDays(_startDate, _endDate)),
+              _buttons(),
+            ],
           ),
-          if (rotate) getSpinkit('Creating wallpapers')
-        ],
-      ),
+        ),
+        if (rotate) getSpinkit('Creating wallpapers')
+      ],
     );
   }
 
@@ -145,15 +165,14 @@ class _TempPageState extends State<TempPage> {
     );
   }
 
-  Future<void> _getScreenshot() async {
-    int n = _endDate.difference(_startDate).inDays;
+  Future<void> _getScreenshot(int currentDay, int totalDays) async {
     if (appDocDir.existsSync()) {
       appDocDir.deleteSync(recursive: true);
     }
 
-    for (int i = 1; i <= n; i++) {
+    for (int i = currentDay; i <= totalDays; i++) {
       _screenshotController
-          .captureFromWidget(screenshotImage(i, n))
+          .captureFromWidget(screenshotImage(i, totalDays))
           .then((Uint8List image) {
         //Capture Done
         setState(() async {
@@ -163,9 +182,22 @@ class _TempPageState extends State<TempPage> {
             file.writeAsBytesSync(image);
             developer.log(file.path);
           });
-          if (i == n) {
+
+          if (i == (currentDay + 2)) {
+            developer.log('Inside');
+            const int helloAlarmID = 234234;
+            await AndroidAlarmManager.periodic(
+              const Duration(milliseconds: 1),
+              helloAlarmID,
+              callback,
+              exact: true,
+              allowWhileIdle: true,
+            );
+          }
+          if (i == totalDays) {
             setState(() {
               rotate = false;
+              Navigator.of(context).pop();
             });
             showSnackBar('Wallpapers created');
             developer.log('Done');
@@ -175,21 +207,5 @@ class _TempPageState extends State<TempPage> {
         // print(onError);
       });
     }
-    developer.log(DateTime.now().toString());
-    const int helloAlarmID = 234234;
-    await AndroidAlarmManager.periodic(
-      const Duration(milliseconds: 1),
-      helloAlarmID,
-      callback,
-      exact: true,
-      allowWhileIdle: true,
-    ).then((value) {
-      Future.delayed(const Duration(seconds: 25)).then((value) {
-        setState(() {
-          rotate = false;
-          showSnackBar('Wallpaper Set');
-        });
-      });
-    });
   }
 }

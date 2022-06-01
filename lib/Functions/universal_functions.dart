@@ -23,39 +23,42 @@ Future<void> callback() async {
 
     final prefs = await SharedPreferences.getInstance();
     int dayNo = 1;
-    bool cout=false;
+    bool cout = false;
     developer.log("B");
-    if (!prefs.containsKey('day')) {
-      cout=true;
-      prefs.setInt('day', 1);
+
+    int today = DateTime.now().day;
+    int yesterday = DateTime.now().subtract(const Duration(hours: 24)).day;
+
+    int prevDay = prefs.getInt('prevDay')!.toInt();
+
+    if (yesterday == prevDay || prevDay == -1) {
+      cout = true;
+      int val = prefs.getInt('currentDay')!.toInt();
+      dayNo = val + 1;
+      int remDays = prefs.getInt('remainingDays')!.toInt();
+      prefs.setInt('currentDay', val + 1);
+      prefs.setInt('prevDay', today);
+      prefs.setInt('remainingDays', remDays - 1);
+
+      developer.log("C");
+      String dirPath = '${directory.path}/wallpapers';
+      String filePath = '$dirPath/wallpaper$dayNo.png';
+      developer.log(filePath);
+
+      await File(filePath).exists().then((bool val) {
+        if (!val) {
+          developer.log('path doesnt exist');
+        } else {
+          developer.log('path does exist');
+          setWallpaper(filePath);
+          developer.log(DateTime.now().toString());
+        }
+      });
+
+      developer.log("F");
     } else {
-      dayNo = prefs.getInt('day')!.toInt() + 1;
-
-      prefs.setInt('day', dayNo);
+      developer.log('Not this time babe');
     }
-    developer.log("C");
-    String dirPath = '${directory.path}/wallpapers';
-    String filePath = '$dirPath/wallpaper$dayNo.png';
-    developer.log(filePath);
-    developer.log("D");
-    int hour=DateTime.now().hour;
-    int minute=DateTime.now().minute;
-
-    developer.log("E");
-    await File(filePath).exists().then((bool val) {
-      if (!val) {
-        developer.log('path doesnt exist');
-      } else if(cout|| hour==0&&minute==0){
-        developer.log('path does exist');
-        setWallpaper(filePath);
-        developer.log(DateTime.now().toString());
-      }
-      else {
-        developer.log('C');
-      }
-    });
-
-    developer.log("F");
   });
 }
 
@@ -76,46 +79,45 @@ getSpinkit(t) {
       // mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.center,
       children: const [
-         SpinKitWave(
+        SpinKitWave(
           color: Colors.green,
           size: 50.0,
         ),
         SizedBox(
           height: 15,
         ),
-       Text(
+        Text(
           'Setting Wallpaper Service',
-          style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, color: Colors.blue),
+          style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
         )
       ],
     ),
   );
 }
 
-
 Widget getNumOfDays(DateTime startDate, DateTime endDate) {
-    int numOfDays = endDate.difference(startDate).inDays;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          alignment: Alignment.center,
-          child: Text(
-            numOfDays.toString(),
-            style: const TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
-          ),
+  int numOfDays = endDate.difference(startDate).inDays;
+  return Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        alignment: Alignment.center,
+        child: Text(
+          numOfDays.toString(),
+          style: const TextStyle(fontSize: 90, fontWeight: FontWeight.bold),
         ),
-        Container(
-          // padding: const EdgeInsets.symmetric(vertical: 5),
-          alignment: Alignment.center,
+      ),
+      Container(
+        // padding: const EdgeInsets.symmetric(vertical: 5),
+        alignment: Alignment.center,
 
-          child: const Text(
-            'Days',
-            style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
-          ),
+        child: const Text(
+          'Days',
+          style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
         ),
-      ],
-    );
-  }
-
+      ),
+    ],
+  );
+}
